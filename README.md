@@ -1,75 +1,34 @@
-# F75 极简驱动
+# F75 配置工具
 
-AULA F75 键盘配置工具。协议来自社区逆向,不依赖官方驱动。
+面向 AULA F75 三模键盘的 Windows 原生中文配置工具。**当前是只读预览版，不是官方驱动的完整替代品。** 真实设备写入未通过本项目的真机验收，程序不提供灯光、键位、宏、配置恢复或恢复出厂的硬件写入口。
 
-## 三个版本
+## 下载与运行
 
-| 版本 | 文件 | 体积 | 运行依赖 |
-|---|---|---|---|
-| **原生 C(主推)** | `f75.exe` / `f75.c` | **201 KB** | 无 |
-| Web 可视化 | `f75-studio.html` | 40 KB | Chrome/Edge(WebHID) |
-| Python 脚本 | `f75.py` | 27 KB | Python 3 |
+在 [GitHub Actions](https://github.com/obihs2501/f75mini/actions/workflows/build.yml) 打开最近一次成功的构建，从 **Artifacts** 下载 `f75-windows-x64`。GitHub 可能要求登录后下载。解压后双击 `F75Config.exe`；命令行工具为同目录下的 `f75-cli.exe`。
 
-配置写入键盘板载内存,改完不需要任何后台进程。
+目标平台为 **Windows 10 22H2 / Windows 11，x64**。CI 使用 Windows Server 2022 和 MSVC 编译；桌面系统版本、高 DPI 和实际键盘仍需人工复核。运行不需要安装、管理员权限、网络、官方驱动、后台服务或浏览器运行时。暂不支持通过蓝牙配置。
 
-## 原生 C 版用法
+## 可以做什么
 
-```powershell
-f75.exe info                                    # 查看状态
-f75.exe light --effect 1 --brightness 7 --colour 0   # 静态红
-f75.exe light --rgb FF0000                      # 逐键自定义色
-f75.exe key --list                              # 查看键位
-f75.exe key --key LWin --to LWin                # 改键
-f75.exe dump --out backup.bin                   # 备份
-f75.exe restore backup.bin                      # 恢复
-```
+- 连接 USB-C 有线或 2.4G 接收器，扫描、选择候选接口并手动读取。接收器被发现不等于键盘在线；无响应可先唤醒键盘、检查供电和距离，再重试。
+- 显示有实际响应依据的读数；因通路、固件或报文校验无法读取的项不会填入示例值。基础键层的协议矩阵不是已确认的逐键映射，不能据此断言 Win 键被重映射。
+- 查看 Win 键排查步骤：先检查连接与窗口输入，再确认 Windows 模式，之后才按对应手册检查 **Fn+Win**。固件锁定无法由本工具读取或控制。恢复映射也不等于解锁。
+- 进入隔离的 ANSI 演示，在键盘图上编辑、撤销、应用本地灯光和键位，或保存与导入 `.f75demo`。演示从不向硬件写入。
+- 导出真实的可读取配置为版本化 UTF-8 JSON，**不是完整备份，也不能恢复到键盘**。JSON 明确标记不能恢复、布局未核验；未读到的字段为 `null`，不导出本机 HID 路径。
 
-灯效 ID:`0`关闭 `1`静态 `2`呼吸 `3`彩虹 `4`流光 `5`雨滴 `6`彩虹轮盘
-`7`涟漪 `8`星光 `9`渐隐 `10`贪吃蛇 `11`霓虹 `12`触发 `13`正弦波
-`14`扫描 `15`风车 `16`瀑布 `17`花开 `18`风暴 `21`逐键自定义
-
-颜色:`0`红 `1`绿 `2`蓝 `3`黄 `4`品红 `5`青 `6`白 `7`随机
-
-`--to` 写法:`LWin` / `disabled` / `LCtrl+C` / `raw:00:08:00:00`
-
-## Web 可视化版
+## 命令行
 
 ```powershell
-.\启动配置器.bat
-# 浏览器打开 http://localhost:8765/f75-studio.html
+.\f75-cli.exe --help
+.\f75-cli.exe list
+.\f75-cli.exe info --device 1 --json
+.\f75-cli.exe export --device 1 --out .\f75-snapshot.json
+.\f75-cli.exe demo create .\example.f75demo
+.\f75-cli.exe demo validate .\example.f75demo
 ```
 
-Chrome/Edge 直接通过 WebHID 通信,三套主题(精密仪器/工作台/暗夜),
-无需后端。点"演示模式"可先看界面。
+设备序号从 1 开始，拔插后请先重新列出候选设备。导出和演示创建不会覆盖已有文件。JSON 输出为 UTF-8。退出码：`0` 成功；`2` 参数错误；`3` 设备选择失败；`4` 未确认响应；`5` 文件错误；`6` 内部错误。
 
-## GitHub 编译
+## 开发与验收
 
-仓库:https://github.com/obihs2501/f75mini
-
-推送到 main 会自动用 Windows-latest + MSVC 编译并上传 artifact:
-
-```powershell
-git add . && git commit -m "update" && git push
-```
-
-手动编译(本机需 MSVC):
-
-```powershell
-cl /nologo /O2 /utf-8 /Fe:f75.exe f75.c
-```
-
-## Win 键说明
-
-F75 的 Win 键锁定由 **Fn+Win** 控制(锁定时该键白灯常亮),
-这是固件层开关,不受键位映射影响。若映射正常但按了没反应,按 Fn+Win 解锁。
-键位映射本身可用 `key --key LWin --to ...` 修改;长按 Fn+Esc 5 秒可整板恢复出厂。
-
-## 技术
-
-- 协议逆向来源:`trenbolone1122/aula-f75-linux`、`rosman21/aula75-remapper`、
-  `vinicenter/aula-f75-webdriver`
-- USB-C:`258a:010c` 的 `MI_01/COL06`,520 字节 feature report `0x06`
-- 2.4G:`3554:fa09` 的 usage page `0xFF02`,20 字节 report `0x13`
-- 写前读回校验;键位写回强制带 `5A A5` 签名,否则重启后丢失
-
-本项目为独立实现,与 AULA 官方无关。MIT。
+本仓库在 GitHub Actions 云端构建 x64 Release；通过测试后上传便携包。设计依据见 [初步修订版 PRD](PRD-初步修订版.md)，实际验证边界和放行条件见 [验收说明](docs/validation.md)。本项目与 AULA / EPOMAKER 无隶属关系。

@@ -1,36 +1,49 @@
-name: Build F75 CLI
+name: Build and test Windows
 
-# 仓库根目录即本目录 (f75.c 在根)。push 或手动触发时用 MSVC 编译。
 on:
   push:
-    branches: [main, master]
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
-    runs-on: windows-latest
+  windows-x64:
+    runs-on: windows-2022
+    timeout-minutes: 20
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup MSVC (x64)
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
+      - uses: actions/checkout@v4
+      - name: Configure x64
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
       - name: Compile with MSVC
-        shell: cmd
+        run: cmake --build build --config Release --parallel
+      - name: Test without hardware
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Collect portable package
+        run: cmake --install build --config Release --prefix dist
+      - name: Record executable sizes and SHA-256
         run: |
-          cl /nologo /O2 /utf-8 /Fe:f75.exe f75.c
-
-      - name: Smoke test (no keyboard needed)
-        shell: cmd
-        run: |
-          f75.exe --help
-
-      - name: Upload artifact
+          $rows = Get-ChildItem dist -Filter *.exe | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          }
+          $rows | Set-Content -Encoding ascii dist/SHA256SUMS.txt
+          '### Windows x64 package' >> $env:GITHUB_STEP_SUMMARY
+          '| File | Bytes |' >> $env:GITHUB_STEP_SUMMARY
+          '| --- | ---: |' >> $env:GITHUB_STEP_SUMMARY
+          Get-ChildItem dist -Filter *.exe | Sort-Object Name | ForEach-Object {
+            "| $($_.Name) | $($_.Length) |" >> $env:GITHUB_STEP_SUMMARY
+          }
+      - name: Upload Windows x64 package
         uses: actions/upload-artifact@v4
         with:
           name: f75-windows-x64
-          path: f75.exe
+          path: dist/
           if-no-files-found: error
+          retention-days: 90
