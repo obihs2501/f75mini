@@ -1,7 +1,9 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
@@ -14,12 +16,15 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstdlib>
 #include <cwchar>
 #include <filesystem>
 #include <future>
 #include <initializer_list>
+#include <iterator>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -154,6 +159,11 @@ struct Gui {
         button(Export,L"导出"); button(Import,L"导入演示草稿");
         label(DangerHead,L"危险区域 · 未开放"); label(DangerBody,L"");
         label(Footer,L"",true); button(Undo,L"撤销本页草稿",true); button(Apply,L"应用到演示",true);
+        for (int i=Brand;i<=Apply;++i) if (!at(i)) return false;
+        for (int i=Nav;i<Nav+static_cast<int>(pages.size());++i) if (!at(i)) return false;
+        for (int i=Title;i<=DangerBody;++i) if (!at(i)) return false;
+        for (size_t i=0;i<keys().size();++i) if (!at(KeyFirst+static_cast<int>(i))) return false;
+        resetList();
         for (const auto& e : effects()) item(EffectBox,wstring(e.name).c_str());
         for (int i=0;i<=7;++i) { const auto n=std::to_wstring(i); item(BrightBox,n.c_str()); item(SpeedBox,n.c_str()); }
         for (auto s : colors) item(ColorBox,s);
@@ -338,11 +348,8 @@ struct Gui {
         return line;
     }
     const DeviceSnapshot* displayed() const {
-        if (current()) return &snapshot->data;
-        if (lastRead) return &*lastRead;
-        if (!selected() && snapshot) return &snapshot->data;
-        if (snapshot && selected() && selected()->path==snapshot->device.path) return &snapshot->data;
-        return nullptr;
+        if (snapshot && (!selected() || selected()->path==snapshot->device.path)) return &snapshot->data;
+        return lastRead ? &*lastRead : nullptr;
     }
     bool showingOld() const { return displayed() && snapshot && displayed()==&snapshot->data && snapshot->stale; }
     wstring status() const {
@@ -455,7 +462,7 @@ struct Gui {
             text(Intro,L"宏管理尚未开放。");
             text(MacroBody,L"本版不读取、录制、执行或写入宏，也不会在导入演示配置后执行内容。\n\n有线宏已有社区实现，但本项目尚未确认适用设备、通路、步骤容量和播放方式。无线宏也未验证；这不代表硬件本身不支持。\n\n演示导入与设备报告均不包含宏，不提供模拟容量或绑定结果。");
             break;
-        case Page::Config:
+        case Page::Config: {
             text(Intro,demo?L"演示文件和设备报告是分离的两种格式，不能相互导入。":L"导出当前通路已读取的内容；这是报告，不是整板备份。真实恢复未开放。");
             text(ConfigBody,demo?L"导出灯光与基础层键位草稿（包含未应用修改）。导入前验证版本、ANSI 布局和取值，并预览覆盖范围。\n\n文件只用于演示；不含宏、电源、逐键配色、Win 固件锁或板载档位。":L"可包含：灯光、系统模式、休眠及基础键层的已读取项；具体范围见报告。\n\n不包含宏、逐键配色、Win 固件锁或板载档位。文件不支持恢复到真机。电量是状态，不是可恢复配置。\n\n无当前读取结果、读取中或快照已过期时，不能导出。");
             text(Export,demo?L"导出演示草稿":L"导出可读取配置"); enabled(Export,demo||canExport());

@@ -67,7 +67,7 @@ int run(int argc, wchar_t** argv) {
             for (auto digit : value) n = n * 10 + static_cast<unsigned>(digit - L'0');
             if (!n) return fail(L"设备编号从 1 开始。", 2);
             id = n;
-        } else if (arg == L"--out" && command == L"export" && !out && i + 1 < argc && *argv[i + 1]) out = argv[++i];
+        } else if (arg == L"--out" && command == L"export" && !out && i + 1 < argc && *argv[i + 1] && !std::wstring_view(argv[i + 1]).starts_with(L"--")) out = argv[++i];
         else return fail(L"参数错误；请使用 --help。", 2);
     }
     if (command == L"export" && (!id || !out)) return fail(L"导出需要明确指定 --device N 和 --out 文件。", 2);

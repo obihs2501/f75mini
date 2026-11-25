@@ -20,10 +20,8 @@ target_link_libraries(f75core PUBLIC hid setupapi)
 add_executable(f75-cli src/cli.cpp)
 target_link_libraries(f75-cli PRIVATE f75core)
 
-add_executable(F75Config WIN32 src/gui.cpp)
+add_executable(F75Config WIN32 src/gui.cpp src/app.manifest)
 target_link_libraries(F75Config PRIVATE f75core comctl32 comdlg32 uxtheme user32 gdi32)
-target_link_options(F75Config PRIVATE "/MANIFESTINPUT:${CMAKE_CURRENT_SOURCE_DIR}/src/app.manifest")
-set_property(TARGET F75Config APPEND PROPERTY LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/app.manifest")
 
 include(CTest)
 if(BUILD_TESTING)

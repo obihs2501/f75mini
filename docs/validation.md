@@ -13,6 +13,12 @@
 | 灯光及键位写入、宏、档位、逐键 RGB、实时灯效、软件重置 | 未开放 | 未开放 |
 | 存储格式 | 部分配置快照 JSON，不可恢复到设备；演示文件与真机隔离 | 同左 |
 
+### HID 读路径
+
+- 有线：核对 Feature 报告 `06` 与 520 字节描述符；通过 `82` 查询型号、`84` 查询灯块、`83` 查询基础键位矩阵。无线：核对输入/输出报告 `13` 与 20 字节描述符；通过 `05` 查询型号、`44` 查询灯块、`41` 查询基础键位矩阵、`4A` 查询电量。分别校验回显或分包和校验和。
+- 读取型号后要求协议型号字节 `CD`，但这个值不能识别 ANSI/ISO 布局或证明固件写入安全；不检查可被用户修改的 Esc 映射来推断身份。
+- 参考 [F75 Studio 协议](https://github.com/trenbolone1122/aula-f75-linux/blob/4f7cebe04ad6a70345e7d1df72c1ce17786c14c4/docs/PROTOCOL.md)、[Remap75 协议实现](https://github.com/rosman21/aula75-remapper/blob/853f7e10f03977740eb7b2f2d465842813cac12e/data/src/protocol.rs) 和 [sanshoku 电量实现](https://github.com/ushineko/sanshoku/blob/b23c1bb65fd43bc0af1d306a6f20f78ab5f968ea/aula/decode.go)。遇到布局、回显或分包差异，本版宁可不展示读数；待真机确认能否覆盖更多固件。
+
 ## 无硬件测试（GitHub Actions）
 
 - C++ 模型：ANSI 键数与布局、演示文件往返、格式和范围检查、不覆盖语义、异常数据拒绝、只读快照导出及隐私。

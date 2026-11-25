@@ -55,7 +55,7 @@ int main() {
     s.state = ConnectionState::Ready;
     s.battery = BatteryState{BatteryPower::ExternalPower, std::nullopt};
     check(!save_snapshot(path, c, s, error), "battery-only response exported as config");
-    s.lighting = LightingState{1, 0, std::nullopt, std::nullopt};
+    s.lighting = LightingState{1, std::uint8_t{0}, std::nullopt, std::nullopt};
     check(save_snapshot(path, c, s, error), "valid snapshot rejected");
     check(!load_demo(path, error), "hardware snapshot imported into demo");
     const auto json = snapshot_json(c, s);
