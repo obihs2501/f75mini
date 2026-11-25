@@ -1,0 +1,36 @@
+name: Build F75 CLI
+
+# 仓库根目录即本目录 (f75.c 在根)。push 或手动触发时用 MSVC 编译。
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Compile with MSVC
+        shell: cmd
+        run: |
+          cl /nologo /O2 /utf-8 /Fe:f75.exe f75.c
+
+      - name: Smoke test (no keyboard needed)
+        shell: cmd
+        run: |
+          f75.exe --help
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: f75-windows-x64
+          path: f75.exe
+          if-no-files-found: error
