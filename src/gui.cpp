@@ -212,9 +212,9 @@ struct Gui {
     }
 
     void scrollbars() {
-        SCROLLINFO h{sizeof(h),SIF_RANGE|SIF_PAGE|SIF_POS};
+        SCROLLINFO h{sizeof(h),SIF_RANGE|SIF_PAGE|SIF_POS|SIF_DISABLENOSCROLL};
         h.nMax=std::max(0,contentW-1); h.nPage=static_cast<UINT>(viewW); h.nPos=sx;
-        SCROLLINFO v{sizeof(v),SIF_RANGE|SIF_PAGE|SIF_POS};
+        SCROLLINFO v{sizeof(v),SIF_RANGE|SIF_PAGE|SIF_POS|SIF_DISABLENOSCROLL};
         v.nMax=std::max(0,contentH-1); v.nPage=static_cast<UINT>(viewH); v.nPos=sy;
         SetScrollInfo(view,SB_HORZ,&h,TRUE); SetScrollInfo(view,SB_VERT,&v,TRUE);
     }

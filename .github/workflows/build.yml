@@ -25,6 +25,17 @@ jobs:
         run: cmake --build build --config Release --parallel
       - name: Test without hardware
         run: ctest --test-dir build -C Release --output-on-failure
+      - name: Check embedded desktop manifest
+        run: |
+          $sdk = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/bin'
+          $mt = Get-ChildItem "$sdk/*/x64/mt.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $mt) { throw 'Windows SDK manifest tool not found' }
+          & $mt.FullName -nologo '-inputresource:build/Release/F75Config.exe;#1' '-out:build/embedded.manifest'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $manifest = Get-Content -Raw -LiteralPath build/embedded.manifest
+          if ($manifest -notmatch 'PerMonitorV2' -or $manifest -notmatch 'Microsoft\.Windows\.Common-Controls') {
+            throw 'Expected DPI awareness and Common Controls v6 dependency'
+          }
       - name: Collect portable package
         run: cmake --install build --config Release --prefix dist
       - name: Record executable sizes and SHA-256

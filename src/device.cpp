@@ -236,8 +236,10 @@ DeviceIssue wired_query(HANDLE handle, Query q, std::span<Byte> out) {
     std::array<Byte, wired_size> answer{};
     answer[0] = wired_report;
     const auto got = perform(handle, deadline, [&](OVERLAPPED* op, DWORD* n) {
-        return DeviceIoControl(handle, get_feature, nullptr, 0, answer.data(),
-                               static_cast<DWORD>(answer.size()), n, op);
+        // The output buffer supplies the ID; using it as the input as well
+        // agrees with HIDAPI's Windows convention for counted feature replies.
+        const auto length = static_cast<DWORD>(answer.size());
+        return DeviceIoControl(handle, get_feature, answer.data(), length, answer.data(), length, n, op);
     });
     if (failed(got.issue)) return got.issue;
     // Require the full logical payload and the echoed feature header. Some
